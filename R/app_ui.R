@@ -13,10 +13,11 @@ app_ui <- function(request) {
 
                #Onglet Données
                tabPanel("Données",
-                        sidebarLayout(
-                          sidebarPanel(),
-                          mainPanel(
-                            tableOutput("tbl_dta")
+
+                        fluidRow(
+                          navlistPanel(widths = c(2,10),
+                            tabPanel("Affichage des données brutes", tableOutput("tbl_dta")),
+                            tabPanel("Graph", plotOutput("graph_dta"))
                           )
                         )
                         ),
@@ -29,9 +30,7 @@ app_ui <- function(request) {
                             actionButton("submitButton", "Lancer")
                           ),
                           mainPanel(
-                            textOutput("formula_ANOVA"),
-                            tableOutput("main_res")
-
+                            tableOutput("tbl_ANOVA")
                           )
                         )
                         )

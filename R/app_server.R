@@ -2,7 +2,7 @@
 #'
 #' @param input,output,session Internal parameters for {shiny}.
 #'     DO NOT REMOVE.
-#' @import shiny readxl ggplot2 FactoMineR factoextra dplyr
+#' @import shiny readxl ggplot2 FactoMineR factoextra dplyr reshape2
 #' @importFrom dplyr filter
 #' @noRd
 app_server <- function(input, output, session) {
@@ -20,13 +20,28 @@ app_server <- function(input, output, session) {
     dta
     })
 
-  observe(
+  observe({
+
+    #Data Table
     output$tbl_dta <- renderTable({p_dta()})
-            )
+
+    #Data Graph
+    meltdata=melt(p_dta(), id=c("Product", "Judge"))
+    meltdata$value <- as.numeric(meltdata$value)
+    output$graph_dta <- renderPlot(
+      ggplot(meltdata, aes(factor(variable), value, fill =variable)) +
+        geom_violin() +
+        geom_boxplot(width=0.1, fill="white", outlier.shape=NA) +
+        geom_jitter(shape=16, position=position_jitter(0.1)) +
+        facet_wrap(~variable, scale="free") +
+        theme_classic() +
+        theme(legend.position = "none")
+    )
+  })
+
+
 
   #MODEL ANOVA
-  output$formula_ANOVA <- renderText("")
-
   output$y_selection <-
     renderUI(
       selectInput(inputId = "y_ANOVA",
@@ -38,17 +53,16 @@ app_server <- function(input, output, session) {
   observeEvent(
     input$submitButton,
     {
-      output$formula_ANOVA <- renderText(paste0("`", input$y_ANOVA , "`", " ~ Product + Judge"))
-
       resAov <- FactoMineR::AovSum(
         formula = formula(paste0("`", input$y_ANOVA , "`", " ~ Product + Judge")),
         data = p_dta())$Ftest %>% as.data.frame
 
-      output$main_res <- renderTable(
+      output$tbl_ANOVA <- renderTable(
         resAov
       )
 
     })
+
 
 
 
