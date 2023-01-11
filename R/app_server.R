@@ -2,7 +2,7 @@
 #'
 #' @param input,output,session Internal parameters for {shiny}.
 #'     DO NOT REMOVE.
-#' @import shiny readxl ggplot2 FactoMineR factoextra dplyr reshape2
+#' @import shiny readxl ggplot2 FactoMineR factoextra dplyr reshape2 plotly
 #' @importFrom dplyr filter
 #' @noRd
 app_server <- function(input, output, session) {
@@ -28,14 +28,15 @@ app_server <- function(input, output, session) {
     #Data Graph
     meltdata=melt(p_dta(), id=c("Product", "Judge"))
     meltdata$value <- as.numeric(meltdata$value)
-    output$graph_dta <- renderPlot(
-      ggplot(meltdata, aes(factor(variable), value, fill =variable)) +
-        geom_violin() +
+    output$graph_dta <- renderPlotly(
+      ggplotly(ggplot(meltdata, aes(factor(variable), value, fill =variable)) +
         geom_boxplot(width=0.1, fill="white", outlier.shape=NA) +
         geom_jitter(shape=16, position=position_jitter(0.1)) +
-        facet_wrap(~variable, scale="free") +
+        geom_segment(y = 0, yend = 0, x = -5, xend = 5, colour = "red") +
+          geom_segment(y = 10, yend = 10, x = -5, xend = 5, colour = "red") +
+        facet_wrap(~variable, scale="free", ncol=5) +
         theme_classic() +
-        theme(legend.position = "none")
+        theme(legend.position = "none"))
     )
   })
 
@@ -62,10 +63,6 @@ app_server <- function(input, output, session) {
       )
 
     })
-
-
-
-
 
   #ACP
   # acp <- PCA(data, scale.unit = T)
