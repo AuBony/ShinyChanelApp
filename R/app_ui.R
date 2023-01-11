@@ -9,9 +9,29 @@ app_ui <- function(request) {
     # Leave this function for adding external resources
     golem_add_external_resources(),
     # Your application UI logic
-    fluidPage(
-      h1("ShinyChanelApp")
-    )
+    navbarPage("ShinyChanelApp",
+
+               #Onglet Données
+               tabPanel("Données",
+                        sidebarLayout(
+                          sidebarPanel(),
+                          mainPanel(
+                            tableOutput("tbl_dta")
+                          )
+                        )
+                        ),
+
+               #Onglet Modèle
+               tabPanel("Modèle",
+                        sidebarLayout(
+                          sidebarPanel(),
+                          mainPanel(
+                            tableOutput("main_res")
+
+                          )
+                        )
+                        )
+               )
   )
 }
 
