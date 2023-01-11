@@ -2,8 +2,12 @@
 
 export(run_app)
 import(FactoMineR)
+import(dplyr)
+import(factoextra)
 import(ggplot2)
+import(plotly)
 import(readxl)
+import(reshape2)
 import(shiny)
 importFrom(dplyr,filter)
 importFrom(golem,activate_js)

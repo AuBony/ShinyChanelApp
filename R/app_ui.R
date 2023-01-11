@@ -11,23 +11,30 @@ app_ui <- function(request) {
     # Your application UI logic
     navbarPage("ShinyChanelApp",
 
-               #Onglet Données
-               tabPanel("Données",
-                        sidebarLayout(
-                          sidebarPanel(),
-                          mainPanel(
-                            tableOutput("tbl_dta")
+               #Onglet Exploration des données
+               tabPanel("Exploration des données",
+
+                        fluidRow(
+                          navlistPanel(widths = c(2,10),
+                            tabPanel("Affichage des données brutes", tableOutput("tbl_dta")),
+                            tabPanel("Graph", plotlyOutput("graph_dta", height = 800))
                           )
                         )
                         ),
 
+               #Onglet Transformation des données
+               tabPanel("Transformation des données",
+                        fluidRow()),
+
                #Onglet Modèle
                tabPanel("Modèle",
                         sidebarLayout(
-                          sidebarPanel(),
+                          sidebarPanel(
+                            uiOutput("y_selection"),
+                            actionButton("submitButton", "Lancer")
+                          ),
                           mainPanel(
-                            tableOutput("main_res")
-
+                            tableOutput("tbl_ANOVA")
                           )
                         )
                         )
