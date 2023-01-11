@@ -24,8 +24,12 @@ app_ui <- function(request) {
                #Onglet Modèle
                tabPanel("Modèle",
                         sidebarLayout(
-                          sidebarPanel(),
+                          sidebarPanel(
+                            uiOutput("y_selection"),
+                            actionButton("submitButton", "Lancer")
+                          ),
                           mainPanel(
+                            textOutput("formula_ANOVA"),
                             tableOutput("main_res")
 
                           )

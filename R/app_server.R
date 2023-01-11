@@ -9,8 +9,12 @@ app_server <- function(input, output, session) {
 
   #DATA
   dta <-  read_xlsx("inst/app/www/Data Test Technique V2.xlsx")
-  dta$Product <- factor(dta$Product)
-  dta$Judge <- factor(dta$Judge)
+  dta$Product <- as.character(dta$Product)
+  dta$Judge <- as.character(dta$Judge)
+  dta <- as.data.frame(dta)
+
+  listY <- colnames(dta %>% select(where(is.numeric)))
+
 
   p_dta <- reactive({
     dta
@@ -21,15 +25,32 @@ app_server <- function(input, output, session) {
             )
 
   #MODEL ANOVA
-  observe({
-    #as.formula(paste0( ))
-    resAov <- FactoMineR::AovSum(formula = `Sensory Variable 1` ~ Product + Judge, data = p_dta())$Ftest
-    resAov$` ` <- rownames(resAov)
-    resAov$`Pr(>F)` <- as.character(signif(resAov$`Pr(>F)`, digits = 3))
-    output$main_res <- renderTable(
-      resAov %>% select(` `, everything())
+  output$formula_ANOVA <- renderText("")
+
+  output$y_selection <-
+    renderUI(
+      selectInput(inputId = "y_ANOVA",
+                  label = "Variable à ajuster",
+                  choices = listY,
+                  multiple = FALSE)
+    )
+
+  observeEvent(
+    input$submitButton,
+    {
+      output$formula_ANOVA <- renderText(paste0("`", input$y_ANOVA , "`", " ~ Product + Judge"))
+
+      resAov <- FactoMineR::AovSum(
+        formula = formula(paste0("`", input$y_ANOVA , "`", " ~ Product + Judge")),
+        data = p_dta())$Ftest %>% as.data.frame
+
+      output$main_res <- renderTable(
+        resAov
       )
-  })
+
+    })
+
+
 
 
   #ACP
