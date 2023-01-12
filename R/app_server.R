@@ -2,7 +2,7 @@
 #'
 #' @param input,output,session Internal parameters for {shiny}.
 #'     DO NOT REMOVE.
-#' @import shiny readxl ggplot2 FactoMineR factoextra dplyr reshape2 plotly
+#' @import shiny readxl ggplot2 FactoMineR factoextra dplyr reshape2 plotly kableExtra knitr
 #' @importFrom dplyr filter
 #' @noRd
 app_server <- function(input, output, session) {
@@ -60,7 +60,18 @@ app_server <- function(input, output, session) {
     }
   })
 
+  na_col <- colSums(is.na(dta)) / nrow(dta) * 100
+  names(na_col) <- c("Product", "Judges", 1:(ncol(dta) - 2))
+  output$graph_TRANSFO_NA_var <- renderPlot(
+    barplot(na_col, main = "Pourcentage de données manquantes par variable", ylim = c(0,100))
+  )
 
+  output$tbl_TRANSFO_NA <- function(){
+    dta %>%
+      filter_at(vars(starts_with("Sensory Variable")), any_vars((. > 10) | (. < 0))) %>%
+      knitr::kable("html") %>%
+      kable_material(c("striped", "hover"))
+  }
 
   #MODEL ANOVA
   shinyjs::hide(id="Modele_graph")

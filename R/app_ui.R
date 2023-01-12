@@ -46,8 +46,8 @@ app_ui <- function(request) {
                         ),
 
                         navlistPanel(widths = c(2,10),
-                                     tabPanel("Données Aberrantes"),
-                                     tabPanel("Données manquantes")
+                                     tabPanel("Données Aberrantes", tableOutput("tbl_TRANSFO_NA")),
+                                     tabPanel("Données manquantes", plotOutput("graph_TRANSFO_NA_var"))
                         )
 
                ),
