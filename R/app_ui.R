@@ -26,7 +26,31 @@ app_ui <- function(request) {
 
                #Onglet Transformation des données
                tabPanel("Transformation des données",
-                        fluidRow()),
+
+                        #Bandeau Erreur
+                        fluidRow(
+                          shinydashboard::box(
+                            id="warning_outlier",
+                            width=11,
+                            img(src="www/avertissement.png", width = 25, height = 25),
+                            HTML(text = "&nbsp;"),
+                            HTML(text ="<strong>Des données aberrantes ont été détectées !</strong> Des scores supérieurs à 10 ou inférieur 0 sont présents dans le jeu de données")
+                          ),
+                          shinydashboard::box(
+                            id="warning_na",
+                            width=11,
+                            img(src="www/avertissement.png", width = 25, height = 25),
+                            HTML(text = "&nbsp;"),
+                            HTML(text = "<strong>Des données manquantes ont été détectées !</strong> Elles ne seront pas prise en compte dans la modélisation")
+                          )
+                        ),
+
+                        navlistPanel(widths = c(2,10),
+                                     tabPanel("Données Aberrantes"),
+                                     tabPanel("Données manquantes")
+                        )
+
+               ),
 
                #Onglet Modèle
                tabPanel("Modèle",
