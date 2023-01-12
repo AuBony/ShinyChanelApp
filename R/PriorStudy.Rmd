@@ -63,6 +63,28 @@ dta_NO <- dta %>%
   filter(`Sensory Variable 7` >= 0 | is.na(`Sensory Variable 7`)) %>% 
   filter(`Sensory Variable 16` >= 0 | is.na(`Sensory Variable 16`))
 
+write.table(dta_NO, file = "../inst/app/www/dta_NO.txt",
+            append = FALSE, sep = ";", dec = ".",
+            row.names = TRUE, col.names = TRUE)
+library(readr)
+library(dplyr)
+dta_NO <- read_delim("../inst/app/www/dta_NO.txt", 
+    delim = ";", escape_double = FALSE, col_types = cols(Product = col_character(), 
+        Judge = col_character(), `Sensory Variable 1` = col_number(), 
+        `Sensory Variable 2` = col_number(), 
+        `Sensory Variable 3` = col_number(), 
+        `Sensory Variable 4` = col_number(), 
+        `Sensory Variable 5` = col_number(), 
+        `Sensory Variable 6` = col_number(), 
+        `Sensory Variable 7` = col_number(), 
+        `Sensory Variable 8` = col_number(), 
+        `Sensory Variable 9` = col_number(), 
+        `Sensory Variable 10` = col_number(), 
+        `Sensory Variable 11` = col_number()), 
+    trim_ws = TRUE) %>% as.data.frame
+
+read.table("../inst/app/www/dta_NO.txt")
+
 dta_test <- dta %>% 
    filter_at(vars(starts_with("Sensory Variable")), any_vars((. <= 10 & .>=0) | is.na(.))) 
 

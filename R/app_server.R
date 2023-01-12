@@ -9,7 +9,9 @@ app_server <- function(input, output, session) {
 
   #Boolean
   shinyjs::hide(id="warning_outlier")
+  shinyjs::show(id="message_outlier")
   shinyjs::hide(id="warning_na")
+  shinyjs::hide(id="body_outlier")
 
   #DATA
   dta <-  read_xlsx("inst/app/www/Data Test Technique V2.xlsx")
@@ -17,9 +19,11 @@ app_server <- function(input, output, session) {
   listY <- colnames(dta %>% select(-Product, - Judge))
 
 
+  vals <- reactiveValues()
+  vals$df <- dta
   p_dta <- reactive({
-    dta
-    })
+    vals$df
+  })
 
   observe({
 
@@ -48,6 +52,12 @@ app_server <- function(input, output, session) {
         filter_at(vars(starts_with("Sensory Variable")), any_vars((. > 10) | (. < 0))) %>%
         nrow()) > 0){
       shinyjs::show(id="warning_outlier")
+      shinyjs::show(id="body_outlier")
+      shinyjs::hide(id="message_outlier")
+    }else{
+      shinyjs::hide(id="warning_outlier")
+      shinyjs::hide(id="body_outlier")
+      shinyjs::show(id="message_outlier")
     }
 
     if((p_dta() %>%
@@ -69,6 +79,22 @@ app_server <- function(input, output, session) {
       knitr::kable("html") %>%
       kable_material(c("striped", "hover"))
   }
+
+  observeEvent(
+    input$submit_transfo,
+    {
+      dta_temp_transfo <- dta
+      #1: supprimer toute la ligne
+      if(input$radio_transfo == 1){
+        dta_temp_transfo <- read_xlsx("inst/app/www/dta_NO.xlsx") %>% as.data.frame()
+      }
+      #2: Remplacer par NA
+      else if(input$radio_transfo == 2){
+        dta_temp_transfo <- read_xlsx("inst/app/www/dta_NA.xlsx") %>% as.data.frame()
+      }
+      vals$df <- dta_temp_transfo
+    }
+  )
 
   #MODEL ANOVA
   shinyjs::hide(id="Modele_graph")

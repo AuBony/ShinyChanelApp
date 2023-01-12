@@ -46,7 +46,29 @@ app_ui <- function(request) {
                         ),
 
                         navlistPanel(widths = c(2,10),
-                                     tabPanel("Données Aberrantes", tableOutput("tbl_TRANSFO_NA")),
+                                     tabPanel("Données Aberrantes",
+                                              shinydashboard::box(
+                                                id="message_outlier",
+                                                width=11,
+                                                img(src="www/verifier.png", width = 25, height = 25),
+                                                HTML(text ="<strong>Aucune donnée aberrante n'est détectée !</strong>")
+                                              ),
+                                              shinydashboard::box(
+                                                id="body_outlier",
+                                                width=11,
+                                                tableOutput("tbl_TRANSFO_NA"),
+                                                radioButtons(
+                                                  inputId = "radio_transfo",
+                                                  width='100%',
+                                                  h4("Pour chaque ligne concernée, voulez-vous : "),
+                                                  choices = list("Supprimer l'ensemble de la ligne ?" = 1,
+                                                                 "Remplacer la valeur aberrante par une valeur manquante ?" = 2),
+                                                  selected = 1),
+                                                actionButton("submit_transfo", "Modifier les données")
+                                              ),
+
+                                     ),
+
                                      tabPanel("Données manquantes", plotOutput("graph_TRANSFO_NA_var"))
                         )
 
