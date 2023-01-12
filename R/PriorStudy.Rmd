@@ -1,0 +1,125 @@
+---
+title: "Etude préalable du Jeu de données"
+author: "Audrey Bony"
+date: "2023-01-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include = FALSE}
+library(readxl)
+library(dplyr)
+```
+## Import des données
+
+```{r}
+dta <- read_excel("data/Data Test Technique V2.xlsx")
+colnames(dta)
+```
+
+```{r, include=FALSE}
+dim_dta <- dim(dta)
+n_ligne <- dim_dta[1]
+n_col <- dim_dta[2]
+```
+
+Le jeu de données présente `r n_col` : les deux premières colonnes décrivent le produit testé et le juge testeur. Les `r n_col - 2` suivantes décrivent la note donnée par le juge sur le produit selon dees descripteurs sensoriels différents.
+
+## Transformation des variables
+
+On transforme les variables produits et juge en facteur.
+
+```{r}
+dta$Product <- factor(dta$Product)
+dta$Judge <- factor(dta$Judge)
+```
+
+## Données aberrantes
+
+Les notes des juges doivent être comprises entre 0 et 10
+
+Or on a une ligne qui comporte un score de 201 et deux lignes avec des scores négatifs :
+```{r}
+#Score supérieur à 10
+dta %>%  filter_at(vars(starts_with("Sensory Variable")), any_vars(. > 10))
+
+#Score inférieur à 0
+dta %>%  filter_at(vars(starts_with("Sensory Variable")), any_vars(. < 0))
+```
+
+```{r}
+sup10 <- dta %>% filter_at(vars(starts_with("Sensory Variable")), any_vars(. > 10)) %>% nrow()
+inf0 <- dta %>%  filter_at(vars(starts_with("Sensory Variable")), any_vars(. < 0)) %>% nrow()
+```
+
+Au total on a 3 lignes sur 81 concernées par des données aberrantes. Cela reste faible, ce qui est rassurant sur la qualité des données.
+
+```{r}
+dta_NO <- dta %>% 
+  filter(`Sensory Variable 15` <= 10 | is.na(`Sensory Variable 15`)) %>% 
+  filter(`Sensory Variable 7` >= 0 | is.na(`Sensory Variable 7`)) %>% 
+  filter(`Sensory Variable 16` >= 0 | is.na(`Sensory Variable 16`))
+
+dta_test <- dta %>% 
+   filter_at(vars(starts_with("Sensory Variable")), any_vars((. <= 10 & .>=0) | is.na(.))) 
+
+dta %>% 
+  filter_at(vars(starts_with("Sensory Variable")), any_vars((. > 10) | (. < 0))) %>% 
+  nrow()
+```
+
+
+Il faudra donc alerter l'utilisateur de la présence d'outlier et lui proposer soit de remplacer les données aberrantes par une données manquantes ou de supprimer les lignes concernées.
+
+## Données manquantes
+
+```{r}
+dta_NO %>% 
+  count(Judge)
+
+dta_NO %>% 
+  count(Product)
+
+dta %>% 
+  filter_at(vars(starts_with("Sensory Variable")), any_vars(is.na(.)))
+```
+
+### Par Variables
+```{r}
+na_col <- colSums(is.na(dta_NO)) / nrow(dta_NO) * 100
+names(na_col) <- c("Product", "Judges", 1:16)
+barplot(na_col, main = "Pourcentage de données manquantes par variable", ylim = c(0,100))
+```
+
+### Par produit
+
+Le nombre de données manquantes par produit est équivalent. Il n'ya a pas un fort déséquilibre entre les produits.
+
+--> Faire le pourcentage 
+```{r}
+dta_NO %>% 
+  group_by(Product) %>% 
+  select(-Judge) %>% 
+  summarise(across(where(is.numeric), function (x) sum(is.na(x)))) %>% 
+  mutate(Total = rowSums(select(., contains("Sensory"))))
+```
+
+### Par Juge
+
+--> Faire le pourcentage
+```{r}
+dta_NO %>% 
+  group_by(Judge) %>% 
+  select(-Product) %>% 
+  summarise(across(where(is.numeric), function (x) sum(is.na(x)))) %>% 
+  mutate(Total = rowSums(select(., contains("Sensory"))))
+```
+### Conclusion sur les données manquantes
+
+Il faudra alerter l'utilisateur de la présence de données manquantes. 
+On peut lui proposer plusieurs méthodes : ne rien faire, utiliser les données complètes uniquement ou une méthoded d'imputation (knn par exemple)
+Suppression de colonnes/juge/produit possible ?
+Il faudra indiquer un certains nombre d'indicateurs pour lui permettre de prendre une décision.
