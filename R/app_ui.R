@@ -2,7 +2,7 @@
 #'
 #' @param request Internal parameter for `{shiny}`.
 #'     DO NOT REMOVE.
-#' @import shiny
+#' @import shiny shinyjs
 #' @noRd
 app_ui <- function(request) {
   tagList(
@@ -10,6 +10,8 @@ app_ui <- function(request) {
     golem_add_external_resources(),
     # Your application UI logic
     navbarPage("ShinyChanelApp",
+
+               useShinyjs(),
 
                #Onglet Exploration des données
                tabPanel("Exploration des données",
@@ -29,16 +31,36 @@ app_ui <- function(request) {
                #Onglet Modèle
                tabPanel("Modèle",
                         sidebarLayout(
-                          sidebarPanel(
-                            uiOutput("y_selection"),
-                            actionButton("submitButton", "Lancer")
+                          sidebarPanel(width = 2,
+                                       uiOutput("y_selection"),
+                                       actionButton("submitButton", "Lancer")
                           ),
                           mainPanel(
-                            tableOutput("tbl_ANOVA")
+                            fluidRow(align="center",
+                                     tableOutput("tbl_ANOVA")
+                                     ),
+
+                            shinydashboard::box(id="Modele_graph",
+                                                width = 12,
+                                                wellPanel(
+                                                  h1("Test des hypothèses"),
+                                                  fluidRow(
+                                                    column(width = 6,
+                                                           plotOutput("graph_ANOVA_1"),
+                                                           br(),
+                                                           plotOutput("graph_ANOVA_2")
+                                                    ),
+                                                    column(width = 6,
+                                                           plotOutput("graph_ANOVA_3")
+                                                    )
+                                                  )
+                                                )
+
+                            )
                           )
                         )
-                        )
                )
+    )
   )
 }
 

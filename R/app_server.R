@@ -43,6 +43,8 @@ app_server <- function(input, output, session) {
 
 
   #MODEL ANOVA
+  shinyjs::hide(id="Modele_graph")
+
   output$y_selection <-
     renderUI(
       selectInput(inputId = "y_ANOVA",
@@ -54,9 +56,33 @@ app_server <- function(input, output, session) {
   observeEvent(
     input$submitButton,
     {
+      shinyjs::show(id="Modele_graph")
+
       resAov <- FactoMineR::AovSum(
         formula = formula(paste0("`", input$y_ANOVA , "`", " ~ Product + Judge")),
         data = p_dta())$Ftest %>% as.data.frame
+      resAov$`Pr(>F)` <- as.character(signif(resAov$`Pr(>F)`, digits = 3))
+
+      reslm <- lm(
+        formula(paste0("`", input$y_ANOVA , "`", " ~ Product + Judge")),
+        data = p_dta()
+      )
+
+      output$graph_ANOVA_1 <- renderPlot(
+        acf(residuals(reslm),
+            main="Indépendance des résidus")
+      )
+      output$graph_ANOVA_2 <- renderPlot(
+        plot(reslm, 2,
+             main = "QQ Plot - Distribution normale des résidus",
+             sub = paste0("`", input$y_ANOVA , "`", " ~ Product + Judge"))
+      )
+
+      output$graph_ANOVA_3 <- renderPlot(
+        plot(reslm, 3,
+             main = "Homoscédasticité des résidus",
+             sub = paste0("`", input$y_ANOVA , "`", " ~ Product + Judge"))
+      )
 
       output$tbl_ANOVA <- renderTable(
         resAov
@@ -64,15 +90,4 @@ app_server <- function(input, output, session) {
 
     })
 
-  #ACP
-  # acp <- PCA(data, scale.unit = T)
-  # fviz_pca_ind(acp,
-  #              geom.ind = c("point","text"), #c("#FA0000", "#FFFFFF", "#FFFFFF") show points only (nbut not "text")
-  #              col.ind = as.factor(couleur)
-  # )
-  #
-  # fviz_pca_var(acp, col.var = "cos2",
-  #              gradient.cols = c("#FA0000", "#E7B800", "#5FCC00"),
-  #              repel = TRUE # Avoid text overlapping
-  # ) #alpha.var="cos2"
 }
