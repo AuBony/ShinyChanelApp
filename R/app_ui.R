@@ -18,11 +18,11 @@ app_ui <- function(request) {
 
                         fluidRow(
                           navlistPanel(widths = c(2,10),
-                            tabPanel("Affichage des données brutes", tableOutput("tbl_dta")),
-                            tabPanel("Graph", plotlyOutput("graph_dta", height = 800))
+                                       tabPanel("Affichage des données brutes", tableOutput("tbl_dta")),
+                                       tabPanel("Graph", plotlyOutput("graph_dta", height = 800))
                           )
                         )
-                        ),
+               ),
 
                #Onglet Transformation des données
                tabPanel("Transformation des données",
@@ -57,12 +57,19 @@ app_ui <- function(request) {
                         sidebarLayout(
                           sidebarPanel(width = 2,
                                        uiOutput("y_selection"),
+                                       radioButtons(
+                                         "radio_model",
+                                         h4("Modèle ANOVA : "),
+                                         choices = list("Y ~ Produit + Juge" = 1,
+                                                        "Y ~ Produit" = 2),
+                                         selected = 1),
                                        actionButton("submitButton", "Lancer")
                           ),
                           mainPanel(
                             fluidRow(align="center",
-                                     tableOutput("tbl_ANOVA")
-                                     ),
+                                     tableOutput("tbl_ANOVA_f"),
+                                     uiOutput("tbl_ANOVA_t_ui")
+                            ),
 
                             shinydashboard::box(id="Modele_graph",
                                                 width = 12,
@@ -79,10 +86,12 @@ app_ui <- function(request) {
                                                     )
                                                   )
                                                 )
-
                             )
+
                           )
+
                         )
+
                )
     )
   )

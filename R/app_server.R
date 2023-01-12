@@ -13,11 +13,8 @@ app_server <- function(input, output, session) {
 
   #DATA
   dta <-  read_xlsx("inst/app/www/Data Test Technique V2.xlsx")
-  dta$Product <- as.character(dta$Product)
-  dta$Judge <- as.character(dta$Judge)
   dta <- as.data.frame(dta)
-
-  listY <- colnames(dta %>% select(where(is.numeric)))
+  listY <- colnames(dta %>% select(-Product, - Judge))
 
 
   p_dta <- reactive({
@@ -75,6 +72,7 @@ app_server <- function(input, output, session) {
 
   #MODEL ANOVA
   shinyjs::hide(id="Modele_graph")
+  isProduitmodel <- reactive({FALSE})
 
   output$y_selection <-
     renderUI(
@@ -88,14 +86,47 @@ app_server <- function(input, output, session) {
     input$submitButton,
     {
       shinyjs::show(id="Modele_graph")
+      dta_temp <- p_dta()
+
+      #input$radio_model == 1 : Modele Complet
+      #input$radio_model == 2 : Modele Produit
+      if(input$radio_model == 2){
+        isProduitmodel <- TRUE
+        dta_temp$Product <- factor(dta_temp$Product)
+        dta_temp$Judge <- factor(dta_temp$Judge)
+        formule <- formula(paste0("`", input$y_ANOVA , "`", " ~ Product"))
+      }else{
+        isProduitmodel <- FALSE
+        dta_temp$Product <- as.character(dta_temp$Product)
+        dta_temp$Judge <- as.character(dta_temp$Judge)
+        formule <- formula(paste0("`", input$y_ANOVA , "`", " ~ Product + Judge"))
+      }
+
 
       resAov <- FactoMineR::AovSum(
-        formula = formula(paste0("`", input$y_ANOVA , "`", " ~ Product + Judge")),
-        data = p_dta())$Ftest %>% as.data.frame
-      resAov$`Pr(>F)` <- as.character(signif(resAov$`Pr(>F)`, digits = 3))
+        formula = formule,
+        data = dta_temp)
+
+      resAov_f <- resAov$Ftest %>% as.data.frame
+      resAov_f$`Pr(>F)` <- as.character(signif(resAov_f$`Pr(>F)`, digits = 3))
+
+      output$tbl_ANOVA_f <- renderTable(
+        resAov_f, rownames = TRUE
+      )
+
+      resAov_t <- resAov$Ttest %>% as.data.frame
+      output$tbl_ANOVA_t <- renderTable(
+        resAov_t, rownames = TRUE
+      )
+      output$tbl_ANOVA_t_ui <- renderUI({
+        if(!isProduitmodel){
+          return("")
+        }
+        tableOutput("tbl_ANOVA_t")
+      })
 
       reslm <- lm(
-        formula(paste0("`", input$y_ANOVA , "`", " ~ Product + Judge")),
+        formule,
         data = p_dta()
       )
 
@@ -106,17 +137,13 @@ app_server <- function(input, output, session) {
       output$graph_ANOVA_2 <- renderPlot(
         plot(reslm, 2,
              main = "QQ Plot - Distribution normale des résidus",
-             sub = paste0("`", input$y_ANOVA , "`", " ~ Product + Judge"))
+             sub = formule)
       )
 
       output$graph_ANOVA_3 <- renderPlot(
         plot(reslm, 3,
              main = "Homoscédasticité des résidus",
-             sub = paste0("`", input$y_ANOVA , "`", " ~ Product + Judge"))
-      )
-
-      output$tbl_ANOVA <- renderTable(
-        resAov
+             sub = formule)
       )
 
     })

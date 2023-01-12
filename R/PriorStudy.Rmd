@@ -16,7 +16,7 @@ library(dplyr)
 ## Import des données
 
 ```{r}
-dta <- read_excel("data/Data Test Technique V2.xlsx")
+dta <- read_excel("../inst/app/www/Data Test Technique V2.xlsx")
 colnames(dta)
 ```
 
@@ -123,3 +123,31 @@ Il faudra alerter l'utilisateur de la présence de données manquantes.
 On peut lui proposer plusieurs méthodes : ne rien faire, utiliser les données complètes uniquement ou une méthoded d'imputation (knn par exemple)
 Suppression de colonnes/juge/produit possible ?
 Il faudra indiquer un certains nombre d'indicateurs pour lui permettre de prendre une décision.
+
+
+# ANOVA
+
+```{r}
+library(FactoMineR)
+
+dta$Product <- factor(dta$Product)
+dta$Judge <- factor(dta$Judge)
+dta$Product <- as.character(dta$Product)
+dta$Judge <- as.character(dta$Judge)
+resAOV <- FactoMineR::AovSum(`Sensory Variable 1` ~ Product + Judge, data = dta)
+dft <- resAOV$Ttest %>% as.data.frame()
+dft
+resAOV$Ftest
+resAOV$Ttest
+
+resAOVProduct <- FactoMineR::AovSum(`Sensory Variable 15` ~ Product, data = dta)
+resAOVProduct$Ftest
+resAOVProduct$Ttest
+
+
+summary(dta)
+
+dtab <- dta
+dtab$Product <- as.character(dtab$Product)
+dtab
+```
