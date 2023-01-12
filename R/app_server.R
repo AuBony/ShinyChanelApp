@@ -2,23 +2,28 @@
 #'
 #' @param input,output,session Internal parameters for {shiny}.
 #'     DO NOT REMOVE.
-#' @import shiny readxl ggplot2 FactoMineR factoextra dplyr reshape2 plotly
+#' @import shiny readxl ggplot2 FactoMineR factoextra dplyr reshape2 plotly kableExtra knitr
 #' @importFrom dplyr filter
 #' @noRd
 app_server <- function(input, output, session) {
 
+  #Boolean
+  shinyjs::hide(id="warning_outlier")
+  shinyjs::show(id="message_outlier")
+  shinyjs::hide(id="warning_na")
+  shinyjs::hide(id="body_outlier")
+
   #DATA
   dta <-  read_xlsx("inst/app/www/Data Test Technique V2.xlsx")
-  dta$Product <- as.character(dta$Product)
-  dta$Judge <- as.character(dta$Judge)
   dta <- as.data.frame(dta)
+  listY <- colnames(dta %>% select(-Product, - Judge))
 
-  listY <- colnames(dta %>% select(where(is.numeric)))
 
-
+  vals <- reactiveValues()
+  vals$df <- dta
   p_dta <- reactive({
-    dta
-    })
+    vals$df
+  })
 
   observe({
 
@@ -41,8 +46,60 @@ app_server <- function(input, output, session) {
   })
 
 
+  #TRANSFORMATION DONNEES
+  observe({
+    if((p_dta() %>%
+        filter_at(vars(starts_with("Sensory Variable")), any_vars((. > 10) | (. < 0))) %>%
+        nrow()) > 0){
+      shinyjs::show(id="warning_outlier")
+      shinyjs::show(id="body_outlier")
+      shinyjs::hide(id="message_outlier")
+    }else{
+      shinyjs::hide(id="warning_outlier")
+      shinyjs::hide(id="body_outlier")
+      shinyjs::show(id="message_outlier")
+    }
+
+    if((p_dta() %>%
+        filter_at(vars(starts_with("Sensory Variable")), any_vars(is.na(.))) %>%
+        nrow()) > 0){
+      shinyjs::show(id="warning_na")
+    }
+  })
+
+  na_col <- colSums(is.na(dta)) / nrow(dta) * 100
+  names(na_col) <- c("Product", "Judges", 1:(ncol(dta) - 2))
+  output$graph_TRANSFO_NA_var <- renderPlot(
+    barplot(na_col, main = "Pourcentage de données manquantes par variable", ylim = c(0,100))
+  )
+
+  output$tbl_TRANSFO_NA <- function(){
+    dta %>%
+      filter_at(vars(starts_with("Sensory Variable")), any_vars((. > 10) | (. < 0))) %>%
+      knitr::kable("html") %>%
+      kable_material(c("striped", "hover"))
+  }
+
+  observeEvent(
+    input$submit_transfo,
+    {
+      dta_temp_transfo <- dta
+      #1: supprimer toute la ligne
+      if(input$radio_transfo == 1){
+        dta_temp_transfo <- read_xlsx("inst/app/www/dta_NO.xlsx") %>% as.data.frame()
+      }
+      #2: Remplacer par NA
+      else if(input$radio_transfo == 2){
+        dta_temp_transfo <- read_xlsx("inst/app/www/dta_NA.xlsx") %>% as.data.frame()
+      }
+      vals$df <- dta_temp_transfo
+    }
+  )
 
   #MODEL ANOVA
+  shinyjs::hide(id="Modele_graph")
+  isProduitmodel <- reactive({FALSE})
+
   output$y_selection <-
     renderUI(
       selectInput(inputId = "y_ANOVA",
@@ -54,25 +111,67 @@ app_server <- function(input, output, session) {
   observeEvent(
     input$submitButton,
     {
-      resAov <- FactoMineR::AovSum(
-        formula = formula(paste0("`", input$y_ANOVA , "`", " ~ Product + Judge")),
-        data = p_dta())$Ftest %>% as.data.frame
+      shinyjs::show(id="Modele_graph")
+      dta_temp <- p_dta()
 
-      output$tbl_ANOVA <- renderTable(
-        resAov
+      #input$radio_model == 1 : Modele Complet
+      #input$radio_model == 2 : Modele Produit
+      if(input$radio_model == 2){
+        isProduitmodel <- TRUE
+        dta_temp$Product <- factor(dta_temp$Product)
+        dta_temp$Judge <- factor(dta_temp$Judge)
+        formule <- formula(paste0("`", input$y_ANOVA , "`", " ~ Product"))
+      }else{
+        isProduitmodel <- FALSE
+        dta_temp$Product <- as.character(dta_temp$Product)
+        dta_temp$Judge <- as.character(dta_temp$Judge)
+        formule <- formula(paste0("`", input$y_ANOVA , "`", " ~ Product + Judge"))
+      }
+
+
+      resAov <- FactoMineR::AovSum(
+        formula = formule,
+        data = dta_temp)
+
+      resAov_f <- resAov$Ftest %>% as.data.frame
+      resAov_f$`Pr(>F)` <- as.character(signif(resAov_f$`Pr(>F)`, digits = 3))
+
+      output$tbl_ANOVA_f <- renderTable(
+        resAov_f, rownames = TRUE
+      )
+
+      resAov_t <- resAov$Ttest %>% as.data.frame
+      output$tbl_ANOVA_t <- renderTable(
+        resAov_t, rownames = TRUE
+      )
+      output$tbl_ANOVA_t_ui <- renderUI({
+        if(!isProduitmodel){
+          return("")
+        }
+        tableOutput("tbl_ANOVA_t")
+      })
+
+      reslm <- lm(
+        formule,
+        data = p_dta()
+      )
+
+      output$graph_ANOVA_1 <- renderPlot(
+        acf(residuals(reslm),
+            main="Indépendance des résidus")
+      )
+      output$graph_ANOVA_2 <- renderPlot(
+        plot(reslm, 2,
+             main = "QQ Plot - Distribution normale des résidus",
+             sub = formule)
+      )
+
+      output$graph_ANOVA_3 <- renderPlot(
+        plot(reslm, 3,
+             main = "Homoscédasticité des résidus",
+             sub = formule)
       )
 
     })
 
-  #ACP
-  # acp <- PCA(data, scale.unit = T)
-  # fviz_pca_ind(acp,
-  #              geom.ind = c("point","text"), #c("#FA0000", "#FFFFFF", "#FFFFFF") show points only (nbut not "text")
-  #              col.ind = as.factor(couleur)
-  # )
-  #
-  # fviz_pca_var(acp, col.var = "cos2",
-  #              gradient.cols = c("#FA0000", "#E7B800", "#5FCC00"),
-  #              repel = TRUE # Avoid text overlapping
-  # ) #alpha.var="cos2"
 }
