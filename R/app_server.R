@@ -9,7 +9,7 @@ app_server <- function(input, output, session) {
 
   #Boolean
   shinyjs::hide(id="warning_outlier")
-  hasNA <- FALSE
+  shinyjs::hide(id="warning_na")
 
   #DATA
   dta <-  read_xlsx("inst/app/www/Data Test Technique V2.xlsx")
@@ -47,10 +47,20 @@ app_server <- function(input, output, session) {
 
   #TRANSFORMATION DONNEES
   observe({
-    if((p_dta()[which(as.numeric(p_dta()$`Sensory Variable 1`)>=10 | as.numeric(p_dta()$`Sensory Variable 1`)<=0),] %>% nrow()) > 0){
+    if((p_dta() %>%
+        filter_at(vars(starts_with("Sensory Variable")), any_vars((. > 10) | (. < 0))) %>%
+        nrow()) > 0){
       shinyjs::show(id="warning_outlier")
     }
+
+    if((p_dta() %>%
+        filter_at(vars(starts_with("Sensory Variable")), any_vars(is.na(.))) %>%
+        nrow()) > 0){
+      shinyjs::show(id="warning_na")
+    }
   })
+
+
 
   #MODEL ANOVA
   shinyjs::hide(id="Modele_graph")
